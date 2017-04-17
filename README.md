@@ -1,7 +1,7 @@
 Curly
 =====
 
-iOS library adding *closure* (*block* or *callback*) functionality to several UIKit classes (alert views, buttons, sliders, storyboard segues, gesture recognizers, etc).
+iOS library adding *closure* (*block* or *callback*) functionality to several native classes (buttons, sliders, notifications, etc).
 
 This library is written in **Swift** but it also works in **Objective-C**. Make sure to read the installation notes below.
 
@@ -10,16 +10,21 @@ Contents
 
 1. [Installation](#1-installation)
 2. [Usage](#2-usage)
-  * [Alert Views](#alert-views)
   * [Buttons, Sliders, etc (UIControl)](#buttons-sliders-etc-uicontrol)
-  * [Storyboard Segues](#storyboard-segues)
+  * [~~Alert Views~~ (No longer supported. Use `UIAlertController`)](#alert-views)
+  * [Notifications](#notifications)
   * [Gesture Recognizers](#gesture-recognizers)
+  * [Some Delegates](#some-delegates)
   * [Observing an Object's Deinit (Dealloc)](#observing-an-objects-deinit-dealloc)
 
 1. Installation
 ------------
 
-Just add Curly.swift to your project :)
+Just add Curly.swift to your project, or use [CocoaPods](https://cocoapods.org):
+
+```
+pod "Curly", :git => 'https://github.com/wircho/Curly.git', :branch => 'master'
+```
 
 This library is written in **Swift** but it also works in **Objective-C**. If you are using Objective-C, make sure you add `#import "[YourProjectName]-Swift.h"` at the beginning of your Objective-C file. You may need to compile once for the Swift methods to be recognized by Xcode's Objective-C editor.
 
@@ -27,31 +32,6 @@ This library is written in **Swift** but it also works in **Objective-C**. If yo
 -----
 
 You can preview the functionality below by running the sample project in the **CurlySample** folder
-
-### Alert Views: ###
-
-##### Swift: #####
-
-```swift
-alertView.show(didDismiss:{(alertView:UIAlertView, buttonIndex:Int) -> Void in
-
-    println("dismissed with button at index \(buttonIndex)")
-            
-})
-```
-Other methods are: `.show(clicked:)`, `.show(willDismiss:)` and the more complete version `.show(clicked:willPresent:didPresent:willDismiss:didDismiss:canceled:shouldEnableFirstOtherButton:)`
-
-##### Objective-C: #####
-
-```objective-c
-[alertView showWithDidDismiss:^(UIAlertView *alertView, NSInteger buttonIndex) {
-
-    NSLog(@"dismissed with button at index %d",(int)buttonIndex);
-    
-}];
-```
-
-The other Objective-C methods are: `showWithclicked:`, `.showWithWillDismiss:` and the more complete version `showWithClicked:willPresent:didPresent:willDismiss:didDismiss:canceled:shouldEnableFirstOtherButton:`
 
 ### Buttons, Sliders, etc (UIControl): ###
 
@@ -61,7 +41,7 @@ The other Objective-C methods are: `showWithclicked:`, `.showWithWillDismiss:` a
 button.addAction(.TouchUpInside) {
     (bttn:UIButton) -> Void in
     
-    println("tapped button")
+    print("tapped button")
             
 }
 ```
@@ -70,7 +50,7 @@ button.addAction(.TouchUpInside) {
 slider.addAction(.ValueChanged) {
     (sldr:UISlider) -> Void in
     
-    println("moved slider")
+    print("moved slider")
             
 }
 ```
@@ -95,30 +75,27 @@ This works with any subclass of UIControl.
 }];
 ```
 
-### Storyboard Segues: ###
+### ~~Alert Views:~~ ###
+
+This functionality is no longer supported by Curly. Please use [`UIAlertController`](https://developer.apple.com/library/ios/documentation/UIKit/Reference/UIAlertController_class/).
+
+### Notifications: ###
 
 ##### Swift: #####
 
 ```swift
-self.performSegueWithIdentifier("segue", sender: nil) {
-    (segue:UIStoryboardSegue, sender:AnyObject?) -> Void in
-            
-    println("preparing for segue!")
-            
+"SOME-NOTIFICATION-NAME".observeFrom(self) {
+    innerSelf, note in
+    
+    print("Listening to NSNotification \(note) from \(innerSelf)")
 }
 ```
 
+The code above has the added advantage that the observation stops as soon as `self` is released/deinited. If you would like to have more control, the method above returns a `CurlyNotificationToken` which you may keep and cancel at any time using `token.cancel()`.
+
 ##### Objective-C: #####
 
-```objective-c
-[[UIViewController alloc] performSegueWithIdentifier:@"segue" sender:nil preparation:^(UIStoryboardSegue *segue, id sender) {
-                
-    NSLog(@"preparing for segue!");
-                
-}];
-```
-
-This works as long as you don't override `prepareForSegue` in your `UIViewController`'s subclass.
+No special Objective-C support yet.
 
 ### Gesture Recognizers: ###
 
@@ -128,7 +105,7 @@ This works as long as you don't override `prepareForSegue` in your `UIViewContro
 let gestureRecognizer = UIPanGestureRecognizer {
     (gr:UIPanGestureRecognizer)->Void in
                 
-    println("gesture recognizer: \(gr)")
+    print("gesture recognizer: \(gr)")
     
 }
 ```
@@ -145,13 +122,62 @@ UIPanGestureRecognizer *gestureRecognizer
 }];
 ```
 
+### Some Delegates: ###
+
+With Curly you can define delegates for UIScrollView and UINavigationController using only closures/blocks.
+
+##### Swift: #####
+
+```swift
+scrollView.setDelegate(
+    didScroll: { (scrollView:UIScrollView) -> Void in
+        print("did scroll")
+    }
+ )
+```
+
+For the complete `UIScrollViewDelegate` functionality use `.setDelegate(willBeginDragging:,didScroll:,willEndDragging:,didEndDragging:,willBeginDecelerating:,didEndDecelerating:,didEndScrollingAnimation:,shouldScrollToTop:,didScrollToTop:,willBeginZooming:,didZoom:,didEndZooming:,viewForZooming:)`
+
+```swift
+navigationController.setDelegate(
+    willShow: { (viewController:UIViewController) -> Void in
+        print("will show")
+    },
+    didShow: { (viewController:UIViewController) -> Void in
+        print("did show")
+    }
+ )
+```
+
+The second parameter `didShow` is optional.
+
+##### Objective-C: #####
+
+```objective-c
+[scrollView setDelegateWithDidScroll:^(UIScrollView *scrollView) {
+    NSLog(@"did scroll");
+}];
+```
+
+For the complete `UIScrollViewDelegate` functionality use `setDelegateWithWillBeginDragging:didScroll:willEndDragging:didEndDragging:willBeginDecelerating:didEndDecelerating:didEndScrollingAnimation:shouldScrollToTop:didScrollToTop:willBeginZooming:didZoom:didEndZooming:viewForZooming:`
+o
+```objective-c
+[navigationController setDelegateWithWillShow:^(UIViewController *viewController, BOOL animated) {
+    NSLog(@"will show");
+} didShow:^(UIViewController *viewController, BOOL animated) {
+    NSLog(@"did show");
+}];
+```
+
 ### Observing an Object's Deinit (Dealloc): ###
+
+The method below works with any subclass of NSObject. Unfortunately, as of now, you cannot refer to your object or its properties inside the closure. In fact, any weak reference to the object will be nil by the time you are in the closure.
 
 ##### Swift: #####
 
 ```swift
 object.deinited {
-    println("object has been deinited")
+    print("object has been deinited")
 }
 ```
 
@@ -162,5 +188,3 @@ object.deinited {
     NSLog(@"object has been deinited");   
 }];
 ```
-
-This works with any subclass of NSObject. Unfortunately, as of now, you cannot refer to your object or its properties inside the closure. In fact, any weak reference to the object will be nil by the time you are in the closure.
